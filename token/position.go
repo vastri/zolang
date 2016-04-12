@@ -90,7 +90,6 @@ type File struct {
 
 	// lines and infos are protected by set.mutex
 	lines []int // lines contains the offset of the first character for each line (the first entry is always 0)
-	infos []lineInfo
 }
 
 // Name returns the file name of file f as registered with AddFile.
@@ -196,33 +195,6 @@ func (f *File) SetLinesForContent(content []byte) {
 	f.set.mutex.Unlock()
 }
 
-// A lineInfo object describes alternative file and line number
-// information (such as provided via a //line comment in a .go
-// file) for a given file offset.
-//
-type lineInfo struct {
-	// fields are exported to make them accessible to gob
-	Offset   int
-	Filename string
-	Line     int
-}
-
-// AddLineInfo adds alternative file and line number information for
-// a given file offset. The offset must be larger than the offset for
-// the previously added alternative line info and smaller than the
-// file size; otherwise the information is ignored.
-//
-// AddLineInfo is typically used to register alternative position
-// information for //line filename:line comments in source files.
-//
-func (f *File) AddLineInfo(offset int, filename string, line int) {
-	f.set.mutex.Lock()
-	if i := len(f.infos); i == 0 || f.infos[i-1].Offset < offset && offset < f.size {
-		f.infos = append(f.infos, lineInfo{offset, filename, line})
-	}
-	f.set.mutex.Unlock()
-}
-
 // Pos returns the Pos value for the given file offset;
 // the offset must be <= f.size().
 // f.Pos(f.Offset(p)) == p.
@@ -256,59 +228,21 @@ func searchInts(a []int, x int) int {
 	return sort.Search(len(a), func(i int) bool { return a[i] > x }) - 1
 }
 
-func searchLineInfos(a []lineInfo, x int) int {
-	return sort.Search(len(a), func(i int) bool { return a[i].Offset > x }) - 1
-}
-
-// unpack returns the filename and line and column number for a file offset.
-// If adjusted is set, unpack will return the filename and line information
-// possibly adjusted by //line comments; otherwise those comments are ignored.
-//
-func (f *File) unpack(offset int, adjusted bool) (filename string, line, column int) {
-	filename = f.name
-	if i := searchInts(f.lines, offset); i >= 0 {
-		line, column = i+1, offset-f.lines[i]+1
-	}
-	if adjusted && len(f.infos) > 0 {
-		// Almost no files have extra line infos.
-		if i := searchLineInfos(f.infos, offset); i >= 0 {
-			alt := &f.infos[i]
-			filename = alt.Filename
-			if i := searchInts(f.lines, alt.Offset); i >= 0 {
-				line += alt.Line - i - 1
-			}
-		}
-	}
-	return
-}
-
-func (f *File) position(p Pos, adjusted bool) (pos Position) {
-	offset := int(p) - f.base
-	pos.Offset = offset
-	pos.Filename, pos.Line, pos.Column = f.unpack(offset, adjusted)
-	return
-}
-
 // Position returns the Position value for the given file position p.
-// If adjusted is set, the position may be adjusted by position-altering
-// //line comments; otherwise those comments are ignored.
-// p must be a Pos value in f or NoPos.
-//
-func (f *File) PositionFor(p Pos, adjusted bool) (pos Position) {
+func (f *File) Position(p Pos) (pos Position) {
 	if p != NoPos {
 		if int(p) < f.base || int(p) > f.base+f.size {
 			panic("illegal Pos value")
 		}
-		pos = f.position(p, adjusted)
+		offset := int(p) - f.base
+		pos.Offset = offset
+		pos.Filename = f.name
+		if i := searchInts(f.lines, offset); i >= 0 {
+			pos.Line = i + 1
+			pos.Column = offset - f.lines[i] + 1
+		}
 	}
 	return
-}
-
-// Position returns the Position value for the given file position p.
-// Calling f.Position(p) is equivalent to calling f.PositionFor(p, true).
-//
-func (f *File) Position(p Pos) (pos Position) {
-	return f.PositionFor(p, true)
 }
 
 // A FileSet represents a set of source files.
@@ -365,7 +299,7 @@ func (s *FileSet) AddFile(filename string, base, size int) *File {
 		panic("illegal base or size")
 	}
 	// base >= s.base && size >= 0
-	f := &File{s, filename, base, size, []int{0}, nil}
+	f := &File{s, filename, base, size, []int{0}}
 	base += size + 1 // +1 because EOF also has a position
 	if base < 0 {
 		panic("token.Pos offset overflow (> 2G of source code in file set)")
@@ -432,23 +366,12 @@ func (s *FileSet) File(p Pos) (f *File) {
 	return
 }
 
-// PositionFor converts a Pos p in the fileset into a Position value.
-// If adjusted is set, the position may be adjusted by position-altering
-// //line comments; otherwise those comments are ignored.
-// p must be a Pos value in s or NoPos.
-//
-func (s *FileSet) PositionFor(p Pos, adjusted bool) (pos Position) {
+// Position converts a Pos p in the fileset into a Position value.
+func (s *FileSet) Position(p Pos) (pos Position) {
 	if p != NoPos {
 		if f := s.file(p); f != nil {
-			pos = f.position(p, adjusted)
+			pos = f.Position(p)
 		}
 	}
 	return
-}
-
-// Position converts a Pos p in the fileset into a Position value.
-// Calling s.Position(p) is equivalent to calling s.PositionFor(p, true).
-//
-func (s *FileSet) Position(p Pos) (pos Position) {
-	return s.PositionFor(p, true)
 }

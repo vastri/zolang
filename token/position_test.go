@@ -145,25 +145,6 @@ func TestPositions(t *testing.T) {
 	}
 }
 
-func TestLineInfo(t *testing.T) {
-	fset := NewFileSet()
-	f := fset.AddFile("foo", fset.Base(), 500)
-	lines := []int{0, 42, 77, 100, 210, 220, 277, 300, 333, 401}
-	// Add lines individually and provide alternative line information.
-	for _, offs := range lines {
-		f.AddLine(offs)
-		f.AddLineInfo(offs, "bar", 42)
-	}
-	// Verify positions for all offsets.
-	for offs := 0; offs <= f.Size(); offs++ {
-		p := f.Pos(offs)
-		_, col := linecol(lines, offs)
-		msg := fmt.Sprintf("%s (offs = %d, p = %d)", f.Name(), offs, p)
-		checkPos(t, msg, f.Position(f.Pos(offs)), Position{"bar", offs, 42, col})
-		checkPos(t, msg, fset.Position(p), Position{"bar", offs, 42, col})
-	}
-}
-
 func TestFiles(t *testing.T) {
 	fset := NewFileSet()
 	for i, test := range tests {
@@ -233,63 +214,4 @@ func TestFileSetRace(t *testing.T) {
 		}()
 	}
 	stop.Wait()
-}
-
-func TestPositionFor(t *testing.T) {
-	src := []byte(`
-foo
-b
-ar
-//line :100
-foobar
-//line bar:3
-done
-`)
-
-	const filename = "foo"
-	fset := NewFileSet()
-	f := fset.AddFile(filename, fset.Base(), len(src))
-	f.SetLinesForContent(src)
-
-	// Verify position info.
-	for i, offs := range f.lines {
-		got1 := f.PositionFor(f.Pos(offs), false)
-		got2 := f.PositionFor(f.Pos(offs), true)
-		got3 := f.Position(f.Pos(offs))
-		want := Position{filename, offs, i + 1, 1}
-		checkPos(t, "1. PositionFor unadjusted", got1, want)
-		checkPos(t, "1. PositionFor adjusted", got2, want)
-		checkPos(t, "1. Position", got3, want)
-	}
-
-	// Manually add //line info on lines l1, l2.
-	const l1, l2 = 5, 7
-	f.AddLineInfo(f.lines[l1-1], "", 100)
-	f.AddLineInfo(f.lines[l2-1], "bar", 3)
-
-	// Unadjusted position info must remain unchanged.
-	for i, offs := range f.lines {
-		got1 := f.PositionFor(f.Pos(offs), false)
-		want := Position{filename, offs, i + 1, 1}
-		checkPos(t, "2. PositionFor unadjusted", got1, want)
-	}
-
-	// Adjusted position info should have changed.
-	for i, offs := range f.lines {
-		got2 := f.PositionFor(f.Pos(offs), true)
-		got3 := f.Position(f.Pos(offs))
-		want := Position{filename, offs, i + 1, 1}
-		// Manually compute wanted filename and line.
-		line := want.Line
-		if i+1 >= l1 {
-			want.Filename = ""
-			want.Line = line - l1 + 100
-		}
-		if i+1 >= l2 {
-			want.Filename = "bar"
-			want.Line = line - l2 + 3
-		}
-		checkPos(t, "3. PositionFor adjusted", got2, want)
-		checkPos(t, "3. Position", got3, want)
-	}
 }

@@ -56,12 +56,6 @@ func equal(p, q *FileSet) error {
 				return fmt.Errorf("different offsets for %q", f.name)
 			}
 		}
-		for j, l := range f.infos {
-			m := g.infos[j]
-			if l.Offset != m.Offset || l.Filename != m.Filename || l.Line != m.Line {
-				return fmt.Errorf("different infos for %q", f.name)
-			}
-		}
 	}
 
 	// We don't care about .last - it's just a cache
@@ -96,13 +90,9 @@ func TestSerialization(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		f := p.AddFile(fmt.Sprintf("file%d", i), p.Base()+i, i*100)
 		checkSerialize(t, p)
-		// Add some lines and alternative file infos.
-		line := 1000
+		// Add some lines.
 		for offs := 0; offs < f.Size(); offs += 40 + i {
 			f.AddLine(offs)
-			if offs%7 == 0 {
-				f.AddLineInfo(offs, fmt.Sprintf("file%d", offs), line)
-			}
 		}
 		checkSerialize(t, p)
 	}

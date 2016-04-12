@@ -10,7 +10,6 @@ type serializedFile struct {
 	Base  int
 	Size  int
 	Lines []int
-	Infos []lineInfo
 }
 
 type serializedFileSet struct {
@@ -30,7 +29,7 @@ func (s *FileSet) Read(decode func(interface{}) error) error {
 	files := make([]*File, len(ss.Files))
 	for i := 0; i < len(ss.Files); i++ {
 		f := &ss.Files[i]
-		files[i] = &File{s, f.Name, f.Base, f.Size, f.Lines, f.Infos}
+		files[i] = &File{s, f.Name, f.Base, f.Size, f.Lines}
 	}
 	s.files = files
 	s.last = nil
@@ -47,7 +46,7 @@ func (s *FileSet) Write(encode func(interface{}) error) error {
 	ss.Base = s.base
 	files := make([]serializedFile, len(s.files))
 	for i, f := range s.files {
-		files[i] = serializedFile{f.name, f.base, f.size, f.lines, f.infos}
+		files[i] = serializedFile{f.name, f.base, f.size, f.lines}
 	}
 	ss.Files = files
 	s.mutex.Unlock()
