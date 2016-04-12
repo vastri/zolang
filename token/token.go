@@ -20,11 +20,12 @@ const (
 
 	literal_beg
 	// Identifiers and basic type literals
-	IDENT  // main
-	BOOL   // true/false
-	INT    // 12345
-	FLOAT  // 123.45
-	STRING // "abc"
+	IDENT     // main
+	BOOL      // true/false
+	INT       // 12345
+	FLOAT     // 123.45
+	STRING    // "abc"
+	RAWSTRING // 'abc'
 	literal_end
 
 	operator_beg
@@ -68,11 +69,12 @@ var tokens = [...]string{
 	EOF:     "EOF",
 	COMMENT: "COMMENT",
 
-	IDENT:  "IDENT",
-	BOOL:   "BOOL",
-	INT:    "INT",
-	FLOAT:  "FLOAT",
-	STRING: "STRING",
+	IDENT:     "IDENT",
+	BOOL:      "BOOL",
+	INT:       "INT",
+	FLOAT:     "FLOAT",
+	STRING:    "STRING",
+	RAWSTRING: "RAWSTRING",
 
 	ADD: "+",
 	SUB: "-",
@@ -99,11 +101,10 @@ var tokens = [...]string{
 	COMMA:  ",",
 	PERIOD: ".",
 
-	RPAREN:    ")",
-	RBRACK:    "]",
-	RBRACE:    "}",
-	SEMICOLON: ";",
-	COLON:     ":",
+	RPAREN: ")",
+	RBRACK: "]",
+	RBRACE: "}",
+	COLON:  ":",
 }
 
 // String returns the string corresponding to the token tok.
