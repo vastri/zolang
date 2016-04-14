@@ -55,11 +55,10 @@ const (
 	COMMA  // ,
 	PERIOD // .
 
-	RPAREN    // )
-	RBRACK    // ]
-	RBRACE    // }
-	SEMICOLON // ;
-	COLON     // :
+	RPAREN // )
+	RBRACK // ]
+	RBRACE // }
+	COLON  // :
 	operator_end
 )
 
