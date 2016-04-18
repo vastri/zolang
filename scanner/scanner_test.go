@@ -10,8 +10,6 @@ import (
 	"github.com/vastri/zolang/token"
 )
 
-var fset = token.NewFileSet()
-
 const (
 	special = iota
 	literal
@@ -126,7 +124,7 @@ func newlineCount(s string) int {
 	return n
 }
 
-func checkPos(t *testing.T, lit string, p token.Pos, expected token.Position) {
+func checkPos(t *testing.T, fset *token.FileSet, lit string, p token.Pos, expected token.Position) {
 	pos := fset.Position(p)
 	if pos.Filename != expected.Filename {
 		t.Errorf("bad filename for %q: got %s, expected %s", lit, pos.Filename, expected.Filename)
@@ -144,6 +142,8 @@ func checkPos(t *testing.T, lit string, p token.Pos, expected token.Position) {
 
 // TestScan verifies that calling Scan() provides the correct results.
 func TestScan(t *testing.T) {
+	fset := token.NewFileSet()
+
 	whitespace_linecount := newlineCount(whitespace)
 
 	// Error handler.
@@ -173,7 +173,7 @@ func TestScan(t *testing.T) {
 			epos.Line = newlineCount(string(source))
 			epos.Column = 2
 		}
-		checkPos(t, lit, pos, epos)
+		checkPos(t, fset, lit, pos, epos)
 
 		// Check token.
 		e := elt{token.EOF, "", special}
