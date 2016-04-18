@@ -6,10 +6,8 @@
 package scanner
 
 import (
-	"bytes"
 	"fmt"
 	"path/filepath"
-	"strconv"
 	"unicode"
 	"unicode/utf8"
 
@@ -122,8 +120,6 @@ func (s *Scanner) error(offs int, msg string) {
 
 func (s *Scanner) scanComment() {
 	// Initial '/' already consumed; s.ch == '/' || s.ch == '*'.
-	offs := s.offset - 1 // position of initial '/'
-
 	if s.ch == '/' {
 		// Single-line comment.
 		s.next()
@@ -138,6 +134,7 @@ func (s *Scanner) scanComment() {
 			s.next()
 			if ch == '*' && s.ch == '/' {
 				s.next()
+				break
 			}
 		}
 	}
