@@ -212,3 +212,20 @@ func TestScan(t *testing.T) {
 		t.Errorf("found %d errors", s.ErrorCount)
 	}
 }
+
+func BenchmarkScan(b *testing.B) {
+	b.StopTimer()
+	fset := token.NewFileSet()
+	file := fset.AddFile("", fset.Base(), len(source))
+	var s Scanner
+	b.StartTimer()
+	for i := 0; i < b.N; i++ {
+		s.Init(file, source, nil)
+		for {
+			_, tok, _ := s.Scan()
+			if tok == token.EOF {
+				break
+			}
+		}
+	}
+}
