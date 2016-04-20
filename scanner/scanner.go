@@ -301,13 +301,14 @@ func (s *Scanner) scanEscape(quote rune) bool {
 }
 
 func (s *Scanner) scanString(quote rune) string {
-	// '"' opening already consumed.
+	// Quote opening already consumed.
 	offs := s.offset - 1
 
 	for {
 		ch := s.ch
 		if ch == '\n' || ch < 0 {
 			s.error(offs, "string literal not terminated")
+			break
 		}
 		s.next()
 		if ch == quote {
